@@ -1,0 +1,172 @@
+[
+    {
+        "id": "DOC-001",
+        "name": "Dr. Rajesh Kumar Sharma",
+        "specialty": "cardiology",
+        "qualification": "MD, DM Cardiology (AIIMS Delhi)",
+        "experience_years": 22,
+        "room": "Block A, Room 201",
+        "available_days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        "max_patients_per_day": 15
+    },
+    {
+        "id": "DOC-002",
+        "name": "Dr. Priya Agarwal",
+        "specialty": "neurology",
+        "qualification": "MD, DM Neurology (SGPGI Lucknow)",
+        "experience_years": 18,
+        "room": "Block A, Room 305",
+        "available_days": ["Monday", "Tuesday", "Wednesday", "Friday"],
+        "max_patients_per_day": 12
+    },
+    {
+        "id": "DOC-003",
+        "name": "Dr. Anil Kumar Verma",
+        "specialty": "orthopedics",
+        "qualification": "MS Orthopedics (KMC Manipal)",
+        "experience_years": 20,
+        "room": "Block B, Room 102",
+        "available_days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+        "max_patients_per_day": 18
+    },
+    {
+        "id": "DOC-004",
+        "name": "Dr. Sunita Gupta",
+        "specialty": "gynecology",
+        "qualification": "MD Obstetrics & Gynecology (JNMC Aligarh)",
+        "experience_years": 16,
+        "room": "Block C, Room 201",
+        "available_days": ["Monday", "Wednesday", "Thursday", "Friday", "Saturday"],
+        "max_patients_per_day": 14
+    },
+    {
+        "id": "DOC-005",
+        "name": "Dr. Vikram Singh Chauhan",
+        "specialty": "gastroenterology",
+        "qualification": "MD, DM Gastroenterology (BHU Varanasi)",
+        "experience_years": 15,
+        "room": "Block A, Room 402",
+        "available_days": ["Monday", "Tuesday", "Thursday", "Friday"],
+        "max_patients_per_day": 12
+    },
+    {
+        "id": "DOC-006",
+        "name": "Dr. Meena Devi Saxena",
+        "specialty": "dermatology",
+        "qualification": "MD Dermatology (MAMC Delhi)",
+        "experience_years": 12,
+        "room": "Block B, Room 305",
+        "available_days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+        "max_patients_per_day": 20
+    },
+    {
+        "id": "DOC-007",
+        "name": "Dr. Arvind Prakash Mishra",
+        "specialty": "pulmonology",
+        "qualification": "MD Pulmonary Medicine (KGMU Lucknow)",
+        "experience_years": 14,
+        "room": "Block A, Room 501",
+        "available_days": ["Monday", "Tuesday", "Wednesday", "Friday"],
+        "max_patients_per_day": 12
+    },
+    {
+        "id": "DOC-008",
+        "name": "Dr. Kavita Rani Joshi",
+        "specialty": "pediatrics",
+        "qualification": "MD Pediatrics (LHMC Delhi)",
+        "experience_years": 19,
+        "room": "Block C, Room 101",
+        "available_days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+        "max_patients_per_day": 20
+    },
+    {
+        "id": "DOC-009",
+        "name": "Dr. Suresh Chandra Pandey",
+        "specialty": "ent",
+        "qualification": "MS ENT (GSVM Kanpur)",
+        "experience_years": 17,
+        "room": "Block B, Room 202",
+        "available_days": ["Monday", "Wednesday", "Thursday", "Saturday"],
+        "max_patients_per_day": 15
+    },
+    {
+        "id": "DOC-010",
+        "name": "Dr. Nandini Srivastava",
+        "specialty": "ophthalmology",
+        "qualification": "MS Ophthalmology (AIIMS Delhi)",
+        "experience_years": 13,
+        "room": "Block B, Room 401",
+        "available_days": ["Tuesday", "Wednesday", "Thursday", "Friday"],
+        "max_patients_per_day": 16
+    },
+    {
+        "id": "DOC-011",
+        "name": "Dr. Ramesh Babu Tiwari",
+        "specialty": "psychiatry",
+        "qualification": "MD Psychiatry (NIMHANS Bangalore)",
+        "experience_years": 21,
+        "room": "Block D, Room 101",
+        "available_days": ["Monday", "Tuesday", "Thursday", "Friday"],
+        "max_patients_per_day": 10
+    },
+    {
+        "id": "DOC-012",
+        "name": "Dr. Pankaj Kumar Yadav",
+        "specialty": "urology",
+        "qualification": "MCh Urology (PGIMER Chandigarh)",
+        "experience_years": 16,
+        "room": "Block A, Room 602",
+        "available_days": ["Monday", "Tuesday", "Wednesday", "Friday"],
+        "max_patients_per_day": 12
+    },
+    {
+        "id": "DOC-013",
+        "name": "Dr. Alok Nath Dubey",
+        "specialty": "general_medicine",
+        "qualification": "MD General Medicine (SN Medical College Agra)",
+        "experience_years": 25,
+        "room": "Block A, Room 101",
+        "available_days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+        "max_patients_per_day": 25
+    },
+    {
+        "id": "DOC-014",
+        "name": "Dr. Deepa Kumari Singh",
+        "specialty": "oncology",
+        "qualification": "MD, DM Medical Oncology (TMH Mumbai)",
+        "experience_years": 14,
+        "room": "Block D, Room 301",
+        "available_days": ["Monday", "Wednesday", "Thursday", "Friday"],
+        "max_patients_per_day": 10
+    },
+    {
+        "id": "DOC-015",
+        "name": "Dr. Manoj Kumar Rastogi",
+        "specialty": "emergency_medicine",
+        "qualification": "MD Emergency Medicine (AIIMS Delhi)",
+        "experience_years": 10,
+        "room": "Emergency Block, Room 01",
+        "available_days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+        "max_patients_per_day": 30
+    },
+    {
+        "id": "DOC-016",
+        "name": "Dr. Shalini Agarwal",
+        "specialty": "cardiology",
+        "qualification": "MD, DM Cardiology (SGPGI Lucknow)",
+        "experience_years": 11,
+        "room": "Block A, Room 203",
+        "available_days": ["Tuesday", "Wednesday", "Thursday", "Saturday"],
+        "max_patients_per_day": 14
+    },
+    {
+        "id": "DOC-017",
+        "name": "Dr. Bharat Bhushan Gupta",
+        "specialty": "general_medicine",
+        "qualification": "MD General Medicine (JNMC Aligarh)",
+        "experience_years": 20,
+        "room": "Block A, Room 103",
+        "available_days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        "max_patients_per_day": 22
+    }
+]

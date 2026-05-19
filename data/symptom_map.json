@@ -1,0 +1,17 @@
+{
+    "chest_pain": {"specialty": "cardiology", "severity_hint": "high", "keywords": ["chest pain", "heart", "palpitation", "heartbeat", "cardiac arrest", "heart attack", "angina", "bp", "blood pressure"]},
+    "headache_neuro": {"specialty": "neurology", "severity_hint": "moderate", "keywords": ["headache", "migraine", "seizure", "epilepsy", "numbness", "paralysis", "stroke", "dizziness", "brain", "memory loss", "tremor", "nerve"]},
+    "bone_joint": {"specialty": "orthopedics", "severity_hint": "high", "keywords": ["fracture", "bone", "joint", "knee", "back pain", "spine", "shoulder", "hip", "ankle", "wrist", "sprain", "arthritis", "slip disc"]},
+    "stomach": {"specialty": "gastroenterology", "severity_hint": "moderate", "keywords": ["stomach", "abdomen", "vomiting", "diarrhea", "constipation", "acidity", "gas", "bloating", "liver", "jaundice", "ulcer", "nausea", "digestion"]},
+    "breathing": {"specialty": "pulmonology", "severity_hint": "high", "keywords": ["breathing", "cough", "asthma", "wheezing", "shortness of breath", "chest congestion", "lung", "pneumonia", "tuberculosis", "tb", "oxygen"]},
+    "skin": {"specialty": "dermatology", "severity_hint": "low", "keywords": ["skin", "rash", "itching", "allergy", "pimple", "acne", "eczema", "fungal", "hair loss", "dandruff", "psoriasis", "pigmentation"]},
+    "ear_nose_throat": {"specialty": "ent", "severity_hint": "low", "keywords": ["ear", "nose", "throat", "sore throat", "tonsil", "hearing", "sinus", "snoring", "voice", "cold", "nasal", "ear pain", "vertigo"]},
+    "eye": {"specialty": "ophthalmology", "severity_hint": "moderate", "keywords": ["eye", "vision", "blurry", "glasses", "cataract", "glaucoma", "redness", "watery eyes", "eye pain", "spectacles"]},
+    "women_health": {"specialty": "gynecology", "severity_hint": "moderate", "keywords": ["pregnancy", "periods", "menstrual", "pcod", "pcos", "fertility", "uterus", "ovary", "breast lump", "irregular periods", "menopause"]},
+    "child_health": {"specialty": "pediatrics", "severity_hint": "moderate", "keywords": ["child", "baby", "infant", "vaccination", "fever child", "kid", "toddler", "newborn", "growth", "child cough"]},
+    "mental_health": {"specialty": "psychiatry", "severity_hint": "moderate", "keywords": ["depression", "anxiety", "stress", "sleep", "insomnia", "panic", "mental", "suicidal", "mood", "bipolar", "ocd", "phobia"]},
+    "urinary": {"specialty": "urology", "severity_hint": "moderate", "keywords": ["urine", "kidney", "kidney stone", "urinary", "prostate", "bladder", "burning urine", "blood in urine", "uti"]},
+    "cancer": {"specialty": "oncology", "severity_hint": "high", "keywords": ["cancer", "tumor", "lump", "biopsy", "chemotherapy", "malignant", "oncology", "growth"]},
+    "emergency": {"specialty": "emergency_medicine", "severity_hint": "critical", "keywords": ["accident", "emergency", "unconscious", "bleeding", "severe pain", "trauma", "poisoning", "burn", "snake bite", "collapse", "unresponsive"]},
+    "general": {"specialty": "general_medicine", "severity_hint": "low", "keywords": ["fever", "cold", "flu", "weakness", "fatigue", "body pain", "weight loss", "diabetes", "thyroid", "routine checkup", "health checkup", "general"]}
+}
