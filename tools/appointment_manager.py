@@ -45,6 +45,7 @@ class AppointmentManager:
         self._bookings: dict[str, dict[str, list[str]]] = {}
         self._appointments: list[Appointment] = []
         self._counter = self._get_max_counter()
+        self._load_existing_bookings()
 
     def _get_max_counter(self) -> int:
         """Get the highest appointment counter from the database."""
@@ -58,6 +59,22 @@ class AppointmentManager:
             return result if result else 0
         except Exception:
             return 0
+
+    def _load_existing_bookings(self) -> None:
+        """Load already-booked slots from the database so we don't double-book after restart."""
+        try:
+            conn = _get_db_connection()
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT doctor_id, appointment_date, time_slot FROM appointments WHERE status = 'confirmed'"
+            )
+            for doctor_id, appt_date, time_slot in cur.fetchall():
+                date_str = appt_date if isinstance(appt_date, str) else appt_date.strftime("%Y-%m-%d")
+                self._bookings.setdefault(doctor_id, {}).setdefault(date_str, []).append(time_slot)
+            cur.close()
+            conn.close()
+        except Exception as e:
+            print(f"[DB WARNING] Could not load existing bookings: {e}")
 
     def _get_all_slots(self) -> list[str]:
         """Generate 30-minute slots from 9:00 AM to 5:00 PM IST."""

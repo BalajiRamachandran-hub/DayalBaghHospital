@@ -38,6 +38,61 @@ def _ask_llm(prompt: str) -> str:
     return response.content.strip()
 
 
+# ---------------------------------------------------------------------------
+# PROMPT STRATEGIES — zero-shot, one-shot, chain-of-thought
+# ---------------------------------------------------------------------------
+
+class PromptStrategy:
+    """Wraps a base prompt with different prompting techniques."""
+
+    @staticmethod
+    def zero_shot(base_prompt: str) -> str:
+        """Direct instruction, no examples. Fast but may be less accurate for edge cases."""
+        return base_prompt
+
+    @staticmethod
+    def one_shot(base_prompt: str) -> str:
+        """Provides one complete example before the actual task."""
+        return f"""Here is an example of how to perform medical triage classification:
+
+--- EXAMPLE ---
+You are a medical triage assistant at Dayal Bagh Hospital.
+
+PATIENT AGE: 62 years
+SYMPTOMS DESCRIBED: I have been feeling heaviness in my chest since last night. There is pain radiating to my left arm and I am sweating a lot. I also feel nauseous.
+KEYWORD MATCH SUGGESTED: cardiology
+
+SPECIALTY: cardiology
+SEVERITY: critical
+--- END EXAMPLE ---
+
+Now classify the following patient using the same format:
+
+{base_prompt}"""
+
+    @staticmethod
+    def chain_of_thought(base_prompt: str) -> str:
+        """Asks LLM to reason step-by-step before giving final answer."""
+        return f"""{base_prompt}
+
+Before giving your final answer, reason through these steps:
+Step 1 - Body System: Which organ system or body part is primarily affected based on the symptoms described?
+Step 2 - Likely Condition: What medical condition do these symptoms most likely indicate?
+Step 3 - Urgency Assessment: Given the patient's age and symptom severity, how urgent is this? Consider: sudden onset = more urgent, chronic/mild = less urgent, elderly/infant = higher risk.
+Step 4 - Specialty Selection: Which medical specialty is best equipped to diagnose and treat this condition?
+
+Example reasoning:
+"Patient describes burning urination and lower abdominal pain → urinary system affected → likely UTI or kidney issue → moderate urgency since no fever mentioned → nephrology/urology"
+
+After your reasoning, you MUST end with exactly two lines:
+SPECIALTY: <specialty>
+SEVERITY: <severity>"""
+
+
+# Default strategy (change to "one_shot" or "chain_of_thought" as needed)
+CLASSIFY_STRATEGY = "zero_shot"
+
+
 def _clean_response(text: str) -> str:
     """Strip LLM meta-commentary. Keep only the direct message."""
     lines = text.strip().splitlines()
@@ -87,11 +142,11 @@ def _clean_response(text: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# 1. ANALYZE SYMPTOMS — keyword-based symptom matching
+# 1. ANALYZE SYMPTOMS — NER + NLTK noun extraction + keyword matching
 # ---------------------------------------------------------------------------
 
 def analyze_symptoms(state: AgentState) -> dict:
-    """Use the symptom analyzer tool to detect specialty from description."""
+    """Use the NER-enhanced symptom analyzer to detect specialty from description."""
     result = _symptom_analyzer.analyze(state["description"])
     return {
         "detected_specialty": result["specialty"],
@@ -100,9 +155,10 @@ def analyze_symptoms(state: AgentState) -> dict:
         "matched_keywords": result["matched_keywords"],
         "current_node": "analyze_symptoms",
         "processing_log": [
-            f"Symptom analysis → specialty={result['specialty']}, "
+            f"NER+NLTK symptom analysis → specialty={result['specialty']}, "
             f"severity={result['severity_hint']}, confidence={result['confidence']}, "
-            f"keywords={result['matched_keywords']}"
+            f"keywords={result['matched_keywords']}, "
+            f"extracted_terms={result.get('extracted_terms', [])[:10]}"
         ],
     }
 
@@ -116,7 +172,7 @@ def llm_classify(state: AgentState) -> dict:
     specialties_str = ", ".join(SPECIALTIES)
     severities_str = ", ".join(SEVERITY_LEVELS)
 
-    prompt = f"""You are a medical triage assistant at {HOSPITAL_NAME}.
+    base_prompt = f"""You are a medical triage assistant at {HOSPITAL_NAME}.
 
 PATIENT AGE: {state['patient_age']} years
 SYMPTOMS DESCRIBED: {state['description']}
@@ -135,6 +191,14 @@ Consider:
 Reply with ONLY two lines:
 SPECIALTY: <specialty>
 SEVERITY: <severity>"""
+
+    # Apply the configured prompt strategy
+    if CLASSIFY_STRATEGY == "one_shot":
+        prompt = PromptStrategy.one_shot(base_prompt)
+    elif CLASSIFY_STRATEGY == "chain_of_thought":
+        prompt = PromptStrategy.chain_of_thought(base_prompt)
+    else:
+        prompt = PromptStrategy.zero_shot(base_prompt)
 
     raw = _ask_llm(prompt)
 
@@ -157,7 +221,7 @@ SEVERITY: <severity>"""
         "llm_severity": severity,
         "current_node": "llm_classify",
         "processing_log": [
-            f"LLM classification → specialty={specialty}, severity={severity}",
+            f"LLM classification ({CLASSIFY_STRATEGY}) → specialty={specialty}, severity={severity}",
             f"LLM raw: {raw[:200]}",
         ],
     }
@@ -203,19 +267,19 @@ def assess_patient_node(state: AgentState) -> dict:
 def resolve_specialty(state: AgentState) -> dict:
     """Combine tool-based and LLM-based classification to pick final specialty + severity."""
     tool_spec = state.get("detected_specialty", "general_medicine")
-    llm_spec = state.get("llm_specialty", "general_medicine")
+    llm_spec = state.get("llm_specialty", tool_spec)  # may not exist if LLM was skipped
     tool_sev = state.get("severity_hint", "low")
-    llm_sev = state.get("llm_severity", "low")
+    llm_sev = state.get("llm_severity", tool_sev)
     confidence = state.get("symptom_confidence", 0.0)
     urgency = state.get("urgency_score", 3)
 
-    # Trust LLM if tool confidence is low or they agree
-    if confidence < 0.5 or tool_spec == "general_medicine":
-        final_spec = llm_spec
-    elif tool_spec == llm_spec:
+    # If deterministic match has high confidence, trust it; LLM is backup
+    if confidence >= 0.5 and tool_spec != "general_medicine":
         final_spec = tool_spec
+    elif llm_spec and llm_spec != "general_medicine":
+        final_spec = llm_spec
     else:
-        final_spec = llm_spec 
+        final_spec = tool_spec
 
     # Severity: take the higher of (tool hint, LLM, urgency-derived)
     sev_order = {"low": 1, "moderate": 2, "high": 3, "critical": 4}
@@ -245,13 +309,14 @@ def resolve_specialty(state: AgentState) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# 5. FIND DOCTOR — match a doctor to the specialty + date
+# 5. FIND DOCTOR — cosine similarity first, then specialty fallback
 # ---------------------------------------------------------------------------
 
 def find_doctor(state: AgentState) -> dict:
-    """Find the best available doctor for the specialty on the appointment date."""
+    """Find the best doctor using cosine similarity on treats, fallback to specialty match."""
     specialty = state["final_specialty"]
     date_str = state["appointment_date"]
+    description = state["description"]
 
     # Get day name from date
     try:
@@ -260,21 +325,39 @@ def find_doctor(state: AgentState) -> dict:
     except ValueError:
         day_name = None
 
+    # --- PRIMARY: Cosine similarity on extracted terms vs doctor treats ---
+    extracted_terms = _symptom_analyzer.analyze(description).get("extracted_terms", [])
+    similarity_results = _doctor_registry.find_by_similarity(extracted_terms, day_name)
+
+    # Try cosine matches first
+    for doc, score in similarity_results:
+        slots = _appt_manager.get_available_slots(doc.id, date_str, doc.max_patients_per_day)
+        if slots:
+            return {
+                "assigned_doctor_id": doc.id,
+                "assigned_doctor_name": doc.name,
+                "assigned_doctor_qualification": doc.qualification,
+                "assigned_doctor_room": doc.room,
+                "final_specialty": doc.specialty,
+                "current_node": "find_doctor",
+                "processing_log": [
+                    f"COSINE MATCH → {doc.name} ({doc.specialty}), "
+                    f"similarity={score}, {doc.qualification}, {doc.room}, {len(slots)} slots"
+                ],
+            }
+
+    # --- FALLBACK: Match by specialty name (always respect day availability) ---
     doctors = _doctor_registry.find_by_specialty(specialty, day_name)
 
     if not doctors:
-        # Try without day filter
-        doctors = _doctor_registry.find_by_specialty(specialty)
-
-    if not doctors:
-        # Fallback to general medicine
+        # Try general medicine on the same day
         doctors = _doctor_registry.find_by_specialty("general_medicine", day_name)
 
     if not doctors:
         return {
             "appointment_status": "no_doctor",
             "current_node": "find_doctor",
-            "processing_log": [f"No doctor found for {specialty} on {date_str}"],
+            "processing_log": [f"No doctor found for {specialty} on {date_str} ({day_name}) — no one available this day"],
         }
 
     # Pick doctor with available slots
@@ -288,7 +371,7 @@ def find_doctor(state: AgentState) -> dict:
                 "assigned_doctor_room": doc.room,
                 "current_node": "find_doctor",
                 "processing_log": [
-                    f"Assigned → {doc.name} ({doc.specialty}), "
+                    f"SPECIALTY FALLBACK → {doc.name} ({doc.specialty}), "
                     f"{doc.qualification}, {doc.room}, {len(slots)} slots available"
                 ],
             }
@@ -334,15 +417,37 @@ def schedule_appointment(state: AgentState) -> dict:
 
     urgency = state.get("urgency_score", 5)
 
-    # Higher urgency → pick earlier slot; lower urgency → later slot
+    # Pick the first available slot within a preferred time window based on urgency.
+    # High urgency → morning (9:00-11:00), Medium → mid-day (10:00-2:00), Low → afternoon (11:00+)
+    # This naturally assigns sequential slots as earlier ones get booked.
     if urgency >= 7:
-        chosen_slot = slots[0]  # Earliest available
+        preferred_start = "09:00"
     elif urgency >= 4:
-        idx = min(len(slots) // 3, len(slots) - 1)
-        chosen_slot = slots[idx]  # Early-mid
+        preferred_start = "10:00"
     else:
-        idx = min(len(slots) // 2, len(slots) - 1)
-        chosen_slot = slots[idx]  # Mid-day
+        preferred_start = "11:00"
+
+    # Find first slot at or after preferred start time
+    chosen_slot = None
+    for slot in slots:
+        # Extract hour:minute from slot like "11:30 AM IST"
+        time_part = slot.split(" IST")[0].strip()
+        parts = time_part.split()
+        hm, ampm = parts[0], parts[1]
+        h, m = map(int, hm.split(":"))
+        if ampm == "PM" and h != 12:
+            h += 12
+        elif ampm == "AM" and h == 12:
+            h = 0
+        slot_24h = f"{h:02d}:{m:02d}"
+
+        if slot_24h >= preferred_start:
+            chosen_slot = slot
+            break
+
+    # If no slot in preferred window, take the first available
+    if not chosen_slot:
+        chosen_slot = slots[0]
 
     appt = _appt_manager.book_appointment(
         patient_name=state["patient_name"],

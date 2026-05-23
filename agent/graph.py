@@ -16,11 +16,21 @@ from agent.nodes import (
 )
 
 
+def needs_llm_fallback(state: AgentState) -> str:
+    """Conditional edge: skip LLM if NER+keyword confidence is high enough."""
+    confidence = state.get("symptom_confidence", 0.0)
+    specialty = state.get("detected_specialty", "general_medicine")
+    if confidence >= 0.5 and specialty != "general_medicine":
+        return "skip_llm"
+    return "use_llm"
+
+
 def build_graph() -> StateGraph:
     """Construct and compile the appointment agent workflow.
 
     Workflow:
-        analyze_symptoms > llm_classify > assess_patient > resolve_specialty
+        analyze_symptoms --[high confidence]--> assess_patient > resolve_specialty
+                         --[low confidence]---> llm_classify > assess_patient > resolve_specialty
         > find_doctor ----> schedule > confirm > END
                       ----> no_availability > END
     """
@@ -36,9 +46,19 @@ def build_graph() -> StateGraph:
     graph.add_node("confirm", generate_confirmation)
     graph.add_node("no_availability", handle_no_availability)
 
-    # Linear edges
+    # Entry
     graph.set_entry_point("analyze_symptoms")
-    graph.add_edge("analyze_symptoms", "llm_classify")
+
+    # Conditional: skip LLM if deterministic confidence is high
+    graph.add_conditional_edges(
+        "analyze_symptoms",
+        needs_llm_fallback,
+        {
+            "skip_llm": "assess_patient",
+            "use_llm": "llm_classify",
+        },
+    )
+
     graph.add_edge("llm_classify", "assess_patient")
     graph.add_edge("assess_patient", "resolve_specialty")
     graph.add_edge("resolve_specialty", "find_doctor")
