@@ -76,7 +76,12 @@ class SymptomAnalyzer:
                 # Match against NER-extracted terms (require meaningful overlap)
                 elif any(
                     (kw in term and len(kw) >= 4) or
-                    (term in kw and len(term) >= 5 and len(term) >= len(kw) * 0.8)
+docker run -d --name hospital-app \
+  -p 8501:8501 \
+  -v $(pwd):/app \
+  -e OLLAMA_BASE_URL=http://host.docker.internal:11434 \
+  -e DB_HOST=host.docker.internal \
+  dayalbagh-hospital                    (term in kw and len(term) >= 5 and len(term) >= len(kw) * 0.8)
                     for term in extracted_terms
                 ):
                     matched.append(kw)
