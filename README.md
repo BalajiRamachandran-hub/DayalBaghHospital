@@ -1,17 +1,21 @@
 # DayalBagh Group Of Hospitals — AI Appointment Booking System
 
-An autonomous AI agent built with **LangGraph**, **Ollama (Llama 3.1 8B)**, **PostgreSQL**, and **Streamlit** that triages patients, analyzes symptoms, assesses urgency, and books specialist appointments with priority-based scheduling.
+An autonomous AI agent built with **LangGraph**, **NLTK**, **scikit-learn (Cosine Similarity)**, **Ollama (Llama 3.1 8B)**, **PostgreSQL**, **Tableau**, and **Streamlit** that triages patients using NER-based symptom extraction, matches doctors via TF-IDF cosine similarity, assesses urgency, and books specialist appointments with priority-based scheduling.
 
 ---
 
 ## Features
 
-- **Symptom Analysis** — Keyword-based + LLM classification to identify the right medical specialty
-- **Urgency Scoring** — Hybrid approach combining keyword sentiment analysis with LLM severity assessment (1-10 scale)
-- **Priority Scheduling** — Critical patients get the earliest available slots automatically
+- **NER + NLTK Pipeline** — Extracts medical nouns, adjectives, bigrams, and trigrams from patient descriptions
+- **Cosine Similarity Matching** — TF-IDF vectorization of doctor `treats[]` lists; matches patients to best-fit doctor (threshold ≥ 0.15)
+- **Conditional LLM Skip** — When NER confidence ≥ 0.5, the LLM is bypassed entirely (< 1s vs ~8s)
+- **LLM Fallback** — Llama 3.1 8B via Ollama used only when deterministic matching is uncertain
+- **Urgency Scoring** — Hybrid approach combining keyword sentiment, age risk, and LLM severity (1-10 scale)
+- **Priority Scheduling** — Critical patients get the earliest available slots; sequential within time windows
 - **15 Medical Specialties** — Cardiology, Neurology, Orthopedics, Oncology, Emergency Medicine, etc.
-- **17 Doctors** — Each with qualifications, room assignments, and daily patient limits
-- **PostgreSQL Persistence** — All appointments stored in a database for history and analytics
+- **17 Doctors** — Each with qualifications, `treats[]` keywords, room assignments, and daily patient limits
+- **PostgreSQL Persistence** — All appointments stored in a database; loads on startup to prevent double-booking
+- **Tableau Analytics** — Connected to PostgreSQL for specialty demand, urgency distribution, and workload dashboards
 - **Streamlit Web UI** — Chat interface with real-time appointment dashboard
 - **Docker Support** — Containerized deployment with volume mounts for development
 
@@ -20,13 +24,19 @@ An autonomous AI agent built with **LangGraph**, **Ollama (Llama 3.1 8B)**, **Po
 ## Architecture
 
 ```
-Patient Input → [1] Symptom Analyzer (keyword) → [2] LLM Classifier (Llama 3.1)
-             → [3] Patient Assessor (urgency)  → [4] Specialty Resolver (merge)
-             → [5] Doctor Finder (lookup)      → [6] Scheduler (priority slots)
-             → [7] Confirmation (LLM message)  → [8] Fallback (no availability)
+Patient Input → [1] Analyze Symptoms (NER + NLTK)
+                    ├── confidence ≥ 0.5 → SKIP LLM ──────────────────────┐
+                    └── confidence < 0.5 → [2] LLM Classify (Llama 3.1)  │
+             → [3] Assess Patient (age + sentiment + urgency)            │
+             → [4] Resolve Specialty                                     │
+             → [5] Find Doctor (Cosine Similarity + day constraint) ◄────┘
+                    ├── doctor found → [6] Schedule Slot → [7] Confirm (LLM)
+                    └── no doctor   → [8] Handle No Availability
 ```
 
-**8-node LangGraph state machine** with 6 linear edges and 1 conditional edge (availability check).
+**8-node LangGraph state machine** with 2 conditional edges:
+1. **LLM Skip** — If NER confidence ≥ 0.5 and specialty ≠ general_medicine, bypass the LLM
+2. **Availability Check** — Routes to scheduling or no-availability handler
 
 ---
 
@@ -181,20 +191,21 @@ docker rm hospital-app          # Remove container
 ├── config.py                  # Central configuration (model, DB, hours, specialties)
 ├── main.py                    # CLI entry point
 ├── streamlit_app.py           # Web UI with chat + dashboard
+├── generate_pptx.py           # Presentation generator script
 ├── Dockerfile                 # Container build file
 ├── requirements.txt           # Python dependencies
 ├── agent/
-│   ├── graph.py               # LangGraph pipeline (8 nodes, edges, compilation)
-│   ├── nodes.py               # All node functions + LLM helpers
+│   ├── graph.py               # LangGraph pipeline (8 nodes, 2 conditional edges)
+│   ├── nodes.py               # Node functions + PromptStrategy + LLM helpers
 │   └── state.py               # AgentState TypedDict (25+ fields)
 ├── tools/
-│   ├── symptom_analyzer.py    # Keyword-based symptom → specialty matcher
+│   ├── symptom_analyzer.py    # NER + NLTK symptom extraction & keyword matching
 │   ├── patient_assessor.py    # Urgency scoring (sentiment + age risk)
-│   ├── doctor_registry.py     # Doctor database lookup
+│   ├── doctor_registry.py     # TF-IDF + Cosine Similarity doctor matching
 │   └── appointment_manager.py # Slot booking + PostgreSQL persistence
 ├── data/
-│   ├── symptom_map.json       # Symptom keywords → specialty mapping
-│   └── doctors.json           # Doctor profiles (17 doctors, 15 specialties)
+│   ├── symptom_map.json       # 15 categories, 25+ keywords each
+│   └── doctors.json           # 17 doctors with treats[] lists (15-24 keywords each)
 └── evaluation/
     └── evaluator.py           # Agent evaluation framework
 ```
@@ -222,9 +233,12 @@ The system uses a **hybrid approach**:
 
 ## Tech Stack
 
-- **LangGraph** — State machine orchestration framework
-- **Ollama + Llama 3.1 8B** — Local LLM for medical classification and response generation
-- **PostgreSQL** — Persistent appointment storage
+- **LangGraph (v0.2+)** — State machine orchestration with conditional edges
+- **NLTK** — Tokenization, POS tagging, NER (ne_chunk), lemmatization, n-grams
+- **scikit-learn** — TF-IDF Vectorizer + Cosine Similarity for doctor matching
+- **Ollama + Llama 3.1 8B** — Local LLM fallback for classification and confirmation
+- **PostgreSQL** — Persistent appointment storage with startup loading
+- **Tableau Desktop** — Visual analytics connected to PostgreSQL
 - **Streamlit** — Web UI framework
 - **Docker** — Containerized deployment
 - **Python 3.13** — Runtime
